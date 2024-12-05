@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LiquidSonics Coupon Optimizer</title>
     <style>
         body {
@@ -27,10 +28,6 @@
 </head>
 <body>
     <h1>LiquidSonics Coupon Optimizer</h1>
-	<h5>Now assumes coupons can be used multiple times (thanks, bossanova@RGO)</h5>
-    <p>Select the coupons you already have:</p>
-    <div class="checkbox-container" id="couponCheckboxes">
-    </div>
     <p>Select the products you want to purchase:</p>
     <div class="checkbox-container" id="productCheckboxes">
     </div>
@@ -43,21 +40,20 @@
 
     <script>
         // Products and coupon data
-        const products = {
-            'Tai Chi Lite': 29.00,
-            'Lustrous Plates': 99.00,
-            'HD Cart': 99.00,
-            'Seventh Heaven': 49.00,
-            'Seventh Heaven Professional': 179.00, 
-            'Illusion': 99.00,
-            'Cinematic Rooms Professional': 249.00,
-            'Cinematic Rooms': 129.00,
-            'Lustrous Plates Surround': 149.00,
-            'Tai Chi': 99.00,
-            'M7 Link': 99.00,
-            'Reverberate 3': 49.00
-        };
-
+const products = {
+    'Tai Chi Lite': 29.00,
+    'Lustrous Plates': 99.00,
+    'HD Cart': 99.00,
+    'Seventh Heaven': 49.00,
+    'Seventh Heaven Professional': 179.00, 
+    'Illusion': 99.00,
+    'Cinematic Rooms Professional': 249.00,
+    'Cinematic Rooms': 129.00,
+    'Lustrous Plates Surround': 149.00,
+    'Tai Chi': 99.00,
+    'M7 Link': 99.00,
+    'Reverberate 3': 49.00
+};
         const couponsGiven = {
             'Cinematic Rooms Professional': [30],
             'Seventh Heaven Professional': [25],
@@ -91,7 +87,7 @@
 
         // Function to create a string key for memoization
         function tuplefy(coupons) {
-            return Array.from(coupons).sort((a, b) => a - b).toString();
+            return coupons.slice().sort().toString();
         }
 
         // Recursive function to simulate purchases and find optimal cost
@@ -119,24 +115,18 @@
 
             const priceAfterEduDiscount = totalOriginalPrice * (1 - educationalDiscount / 100);
 
-            const allCoupons = Array.from(couponsAvailable);
+            const allCoupons = couponsAvailable.slice();
             const couponOptions = [[]];
 
             for (let r = 1; r <= allCoupons.length; r++) {
-                for (const combo of getCombinations(allCoupons, r)) {
-                    couponOptions.push(combo);
+                for(const combo of getCombinations(allCoupons, r)){
+                   couponOptions.push(combo);
                 }
             }
 
             for (const couponsToApply of couponOptions) {
-                const discountFactors = [];
-                const couponPercentages = [];
-
-                if (educationalDiscount > 0) {
-                    discountFactors.push(1 - educationalDiscount / 100);
-                    couponPercentages.push(educationalDiscount);
-                }
-
+                const discountFactors = [1 - educationalDiscount / 100];
+                const couponPercentages = [educationalDiscount];
                 for (const coupon of couponsToApply) {
                     discountFactors.push(1 - coupon / 100);
                     couponPercentages.push(coupon);
@@ -150,19 +140,24 @@
                     'Products': productsInPurchase,
                     'Original Prices': originalPrices,
                     'Total Original Price': totalOriginalPrice,
-                    'Price after Educational Discount': educationalDiscount > 0 ? totalOriginalPrice * (1 - educationalDiscount / 100) : null,
+                    'Price after Educational Discount': priceAfterEduDiscount,
                     'Coupons Applied': couponPercentages,
                     'Price after Coupons': discountedPrice,
                     'Coupons Used': couponsToApply.slice(),
-                    'Coupons Available Before': Array.from(couponsAvailable)
+                    'Coupons Available Before': couponsAvailable.slice()
                 };
 
-                const newCouponsAvailable = new Set(couponsAvailable);
+                const newCouponsAvailable = couponsAvailable.slice();
+                for (const coupon of couponsToApply) {
+                    const indexToRemove = newCouponsAvailable.indexOf(coupon);
+                    if(indexToRemove > -1){
+                        newCouponsAvailable.splice(indexToRemove, 1);
+                    }
+                }
+
                 for (const product of productsInPurchase) {
-                    if (couponsGiven[product]) {
-                        for (const coupon of couponsGiven[product]) {
-                            newCouponsAvailable.add(coupon);
-                        }
+                    if(couponsGiven[product]){
+                        newCouponsAvailable.push(...couponsGiven[product]);
                     }
                 }
 
@@ -180,18 +175,17 @@
         }
 
         function* getCombinations(arr, k) {
-            if (k === 0) {
-                yield [];
-                return;
+          if (k === 0) {
+            yield [];
+            return;
+          }
+          for (let i = 0; i <= arr.length - k; i++) {
+            const first = arr[i];
+            for (const subCombo of getCombinations(arr.slice(i + 1), k - 1)) {
+              yield [first, ...subCombo];
             }
-            for (let i = 0; i <= arr.length - k; i++) {
-                const first = arr[i];
-                for (const subCombo of getCombinations(arr.slice(i + 1), k - 1)) {
-                    yield [first, ...subCombo];
-                }
-            }
+          }
         }
-
         // Function to get permutations of an array
         function* getPermutations(arr) {
             if (arr.length === 1) {
@@ -212,20 +206,16 @@
         function optimize() {
             const checkedProducts = Array.from(document.querySelectorAll('input[name="product"]:checked'))
                                          .map(checkbox => checkbox.value);
-
-            if (checkedProducts.length === 0) {
+            
+            if(checkedProducts.length === 0){
                 alert("Please select at least one product.");
                 return;
             }
 
-            // Get selected coupons
-            const selectedCoupons = Array.from(document.querySelectorAll('input[name="coupon"]:checked'))
-                                         .map(checkbox => parseFloat(checkbox.value));
-            const initialCouponsAvailable = new Set(selectedCoupons);
-
             let minTotalCostOverall = Infinity;
             let bestStrategyOverall = null;
             let bestStepsOverall = null;
+            let strategyNumber = 0;
 
             const partitions = Array.from(getPartitions(checkedProducts));
 
@@ -233,15 +223,50 @@
 
             for (const partition of partitions) {
                 for (const purchaseOrder of getPermutations(partition)) {
+                    strategyNumber++;
                     const memo = {}; // Clear memo for each strategy
-                    const [totalCost, steps] = simulate(purchaseOrder, 0, initialCouponsAvailable, educationalDiscount, memo);
+                    const [totalCost, steps] = simulate(purchaseOrder, 0, [], educationalDiscount, memo);
+                    console.log(`\nStrategy ${strategyNumber}:`);
+                    console.log(`Purchase Order: ${purchaseOrder}`);
+                    for (const step of steps) {
+                        console.log(`\n
+Purchase ${step['Purchase Number']}: Buying ${step['Products'].join(', ')}`);
+                        console.log(`  Original Prices: ${Object.entries(step['Original Prices']).map(([k,v])=> `${k}: $${v.toFixed(2)}`).join(', ')}`);
+                        console.log(`  Total Original Price: $${step['Total Original Price'].toFixed(2)}`);
+                        console.log(`  Price after Educational Discount (if any): $${step['Price after Educational Discount'].toFixed(2)}`);
+                        console.log(`  Coupons Applied: ${step['Coupons Applied'].map(cp => cp + '%').join(', ')}`);
+                        console.log(`  Price after Coupons: $${step['Price after Coupons'].toFixed(2)}`);
+                        console.log(`  Coupons Used: ${step['Coupons Used'].length > 0 ? step['Coupons Used'] : 'None'}`);
+                        console.log(`  Coupons Available Before Purchase: ${step['Coupons Available Before'].length > 0 ? step['Coupons Available Before'] : 'None'}`);
+                    }
+                    console.log(`\nTotal Cost for this strategy: $${totalCost.toFixed(2)}`);
+                    console.log("-" .repeat(50));
                     if (totalCost < minTotalCostOverall) {
                         minTotalCostOverall = totalCost;
-                        bestStrategyOverall = [partition, purchaseOrder];
+                        bestStrategyOverall = [strategyNumber, partition, purchaseOrder];
                         bestStepsOverall = steps.slice();
                     }
                 }
             }
+
+            console.log("\nBest Strategy:");
+            console.log(`Strategy Number: ${bestStrategyOverall[0]}`);
+            console.log("Purchase Order:");
+            bestStrategyOverall[2].forEach((purchase, idx) => {
+                console.log(`  Purchase ${idx + 1}: ${purchase}`);
+            });
+            console.log("\nDetailed Steps:");
+            for (const step of bestStepsOverall) {
+                console.log(`\nPurchase ${step['Purchase Number']}: Buying ${step['Products'].join(', ')}`);
+                console.log(`  Original Prices: ${Object.entries(step['Original Prices']).map(([k,v])=> `${k}: $${v.toFixed(2)}`).join(', ')}`);
+                console.log(`  Total Original Price: $${step['Total Original Price'].toFixed(2)}`);
+                console.log(`  Price after Educational Discount: $${step['Price after Educational Discount'].toFixed(2)}`);
+                console.log(`  Coupons Applied: ${step['Coupons Applied'].map(cp => cp + '%').join(', ')}`);
+                console.log(`  Price after Coupons: $${step['Price after Coupons'].toFixed(2)}`);
+                console.log(`  Coupons Used: ${step['Coupons Used'].length > 0 ? step['Coupons Used'] : 'None'}`);
+                console.log(`  Coupons Available Before Purchase: ${step['Coupons Available Before'].length > 0 ? step['Coupons Available Before'] : 'None'}`);
+            }
+            console.log(`\nLowest Total Cost: $${minTotalCostOverall.toFixed(2)}`);
 
             displayResults(bestStrategyOverall, bestStepsOverall, minTotalCostOverall);
         }
@@ -250,8 +275,9 @@
         function displayResults(bestStrategy, bestSteps, minTotalCost) {
             const resultsTextArea = document.getElementById('results');
             let output = `Best Strategy:\n`;
+            output += `Strategy Number: ${bestStrategy[0]}\n`;
             output += `Purchase Order:\n`;
-            bestStrategy[1].forEach((purchase, idx) => {
+            bestStrategy[2].forEach((purchase, idx) => {
                 output += `  Purchase ${idx + 1}: ${purchase}\n`;
             });
             output += `\nDetailed Steps:\n`;
@@ -259,13 +285,11 @@
                 output += `\nPurchase ${step['Purchase Number']}: Buying ${step['Products'].join(', ')}\n`;
                 output += `  Original Prices: ${Object.entries(step['Original Prices']).map(([k, v]) => `${k}: $${v.toFixed(2)}`).join(', ')}\n`;
                 output += `  Total Original Price: $${step['Total Original Price'].toFixed(2)}\n`;
-                if (step['Price after Educational Discount'] !== null) {
-                    output += `  Price after Educational Discount: $${step['Price after Educational Discount'].toFixed(2)}\n`;
-                }
-                output += `  Coupons Applied: ${step['Coupons Applied'].length > 0 ? step['Coupons Applied'].map(cp => cp + '%').join(', ') : 'None'}\n`;
+                output += `  Price after Educational Discount: $${step['Price after Educational Discount'].toFixed(2)}\n`;
+                output += `  Coupons Applied: ${step['Coupons Applied'].map(cp => cp + '%').join(', ')}\n`;
                 output += `  Price after Coupons: $${step['Price after Coupons'].toFixed(2)}\n`;
-                output += `  Coupons Used: ${step['Coupons Used'].length > 0 ? step['Coupons Used'].map(cp => cp + '%').join(', ') : 'None'}\n`;
-                output += `  Coupons Available Before Purchase: ${step['Coupons Available Before'].length > 0 ? step['Coupons Available Before'].map(cp => cp + '%').join(', ') : 'None'}\n`;
+                output += `  Coupons Used: ${step['Coupons Used'].length > 0 ? step['Coupons Used'] : 'None'}\n`;
+                output += `  Coupons Available Before Purchase: ${step['Coupons Available Before'].length > 0 ? step['Coupons Available Before'] : 'None'}\n`;
             }
             output += `\nLowest Total Cost: $${minTotalCost.toFixed(2)}\n`;
             resultsTextArea.value = output;
@@ -292,42 +316,11 @@
             }
         }
 
-        // Function to create checkboxes for existing coupons
-        function populateCouponCheckboxes() {
-            const couponContainer = document.getElementById('couponCheckboxes');
-            const allUniqueCoupons = new Set();
-            for (const coupons of Object.values(couponsGiven)) {
-                for (const coupon of coupons) {
-                    allUniqueCoupons.add(coupon);
-                }
-            }
-            const sortedCoupons = Array.from(allUniqueCoupons).sort((a, b) => b - a); // Sort in descending order
-
-            for (const coupon of sortedCoupons) {
-                const checkboxDiv = document.createElement('div');
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.name = 'coupon';
-                checkbox.value = coupon;
-                checkbox.id = `coupon-${coupon.toString().replace('.', '-')}`; // To make valid IDs
-                
-                const label = document.createElement('label');
-                label.htmlFor = `coupon-${coupon.toString().replace('.', '-')}`;
-                label.textContent = `${coupon}% Coupon`;
-                
-                checkboxDiv.appendChild(checkbox);
-                checkboxDiv.appendChild(label);
-                couponContainer.appendChild(checkboxDiv);
-            }
-        }
-
         // Initialize checkboxes and attach event listener to button
         window.onload = () => {
-            populateCouponCheckboxes();
             populateCheckboxes();
             document.getElementById('computeButton').addEventListener('click', optimize);
         };
     </script>
 </body>
 </html>
-

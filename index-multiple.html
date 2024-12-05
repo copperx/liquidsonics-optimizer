@@ -27,10 +27,6 @@
 </head>
 <body>
     <h1>LiquidSonics Coupon Optimizer</h1>
-	<h5>Now assumes coupons can be used multiple times (thanks, bossanova@RGO)</h5>
-    <p>Select the coupons you already have:</p>
-    <div class="checkbox-container" id="couponCheckboxes">
-    </div>
     <p>Select the products you want to purchase:</p>
     <div class="checkbox-container" id="productCheckboxes">
     </div>
@@ -218,14 +214,10 @@
                 return;
             }
 
-            // Get selected coupons
-            const selectedCoupons = Array.from(document.querySelectorAll('input[name="coupon"]:checked'))
-                                         .map(checkbox => parseFloat(checkbox.value));
-            const initialCouponsAvailable = new Set(selectedCoupons);
-
             let minTotalCostOverall = Infinity;
             let bestStrategyOverall = null;
             let bestStepsOverall = null;
+            let strategyNumber = 0;
 
             const partitions = Array.from(getPartitions(checkedProducts));
 
@@ -233,11 +225,12 @@
 
             for (const partition of partitions) {
                 for (const purchaseOrder of getPermutations(partition)) {
+                    strategyNumber++;
                     const memo = {}; // Clear memo for each strategy
-                    const [totalCost, steps] = simulate(purchaseOrder, 0, initialCouponsAvailable, educationalDiscount, memo);
+                    const [totalCost, steps] = simulate(purchaseOrder, 0, new Set(), educationalDiscount, memo);
                     if (totalCost < minTotalCostOverall) {
                         minTotalCostOverall = totalCost;
-                        bestStrategyOverall = [partition, purchaseOrder];
+                        bestStrategyOverall = [strategyNumber, partition, purchaseOrder];
                         bestStepsOverall = steps.slice();
                     }
                 }
@@ -251,7 +244,7 @@
             const resultsTextArea = document.getElementById('results');
             let output = `Best Strategy:\n`;
             output += `Purchase Order:\n`;
-            bestStrategy[1].forEach((purchase, idx) => {
+            bestStrategy[2].forEach((purchase, idx) => {
                 output += `  Purchase ${idx + 1}: ${purchase}\n`;
             });
             output += `\nDetailed Steps:\n`;
@@ -292,38 +285,8 @@
             }
         }
 
-        // Function to create checkboxes for existing coupons
-        function populateCouponCheckboxes() {
-            const couponContainer = document.getElementById('couponCheckboxes');
-            const allUniqueCoupons = new Set();
-            for (const coupons of Object.values(couponsGiven)) {
-                for (const coupon of coupons) {
-                    allUniqueCoupons.add(coupon);
-                }
-            }
-            const sortedCoupons = Array.from(allUniqueCoupons).sort((a, b) => b - a); // Sort in descending order
-
-            for (const coupon of sortedCoupons) {
-                const checkboxDiv = document.createElement('div');
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.name = 'coupon';
-                checkbox.value = coupon;
-                checkbox.id = `coupon-${coupon.toString().replace('.', '-')}`; // To make valid IDs
-                
-                const label = document.createElement('label');
-                label.htmlFor = `coupon-${coupon.toString().replace('.', '-')}`;
-                label.textContent = `${coupon}% Coupon`;
-                
-                checkboxDiv.appendChild(checkbox);
-                checkboxDiv.appendChild(label);
-                couponContainer.appendChild(checkboxDiv);
-            }
-        }
-
         // Initialize checkboxes and attach event listener to button
         window.onload = () => {
-            populateCouponCheckboxes();
             populateCheckboxes();
             document.getElementById('computeButton').addEventListener('click', optimize);
         };
