@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Coupon Discount Optimizer</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>Coupon Discount Optimizer</h1>
+
+    <label for="cartValue">Cart Value:</label>
+    <input type="number" id="cartValue" value="100"><br><br>
+
+    <h2>Available Coupons:</h2>
+    <div id="coupons"></div>
+
+    <button onclick="optimizeDiscounts()">Optimize Discounts</button>
+
+    <h2>Best Discount Combination:</h2>
+    <p id="bestCombination"></p>
+    <p>Final Price: <span id="finalPrice"></span></p>
+
+    <h2>Purchase Simulation</h2>
+    <h3>Add items to cart</h3>
+    <label for="itemPrice">Item Price:</label>
+    <input type="number" id="itemPrice" value="0">
+    <button onclick="addItem()">Add Item</button>
+    <h3>Cart</h3>
+    <ul id="cart"></ul>
+    <button onclick="simulatePurchase()">Simulate Purchase</button>
+    <h3>Coupons earned from purchase:</h3>
+    <ul id="earnedCoupons"></ul>
+
+    <script>
+        let coupons = [
+            { value: 0.10, quantity: 0, code: '10PCT'},   // 10%
+            { value: 0.25, quantity: 0, code: '25PCT'},   // 25%
+            { value: 5, quantity: 0, code: '5OFF' },     // $5 off
+            { value: 10, quantity: 0, code: '10OFF'}      // $10 off
+        ];
+        let cart = [];
+        let earnedCoupons = [];
+
+        const couponDisplay = document.getElementById('coupons');
+        const bestCombinationDisplay = document.getElementById('bestCombination');
+        const finalPriceDisplay = document.getElementById('finalPrice');
+        const cartDisplay = document.getElementById('cart');
+        const earnedCouponsDisplay = document.getElementById('earnedCoupons');
+        const itemPriceInput = document.getElementById('itemPrice')
+
+        function addItem() {
+            const itemPrice = parseFloat(itemPriceInput.value);
+            if (!isNaN(itemPrice)) {
+                cart.push(itemPrice);
+                updateCartDisplay();
+            } else {
+                alert("Please enter a valid item price")
+            }
+
+            itemPriceInput.value = "";
+        }
+
+        function updateCartDisplay() {
+            cartDisplay.innerHTML = "";
+            cart.forEach((price, index) => {
+                const li = document.createElement("li");
+                li.textContent = `Item ${index+1}: $${price.toFixed(2)}`;
+                cartDisplay.appendChild(li);
+            })
+        }
+
+        function simulatePurchase() {
+            earnedCoupons = [];
+            let total = cart.reduce((acc, price) => acc + price, 0);
+            if (total >= 50 && total < 100) {
+                earnedCoupons.push({...coupons.find(c => c.code == '10PCT')});
+            } else if (total >= 100 && total < 150) {
+                 earnedCoupons.push({...coupons.find(c => c.code == '10PCT')});
+                 earnedCoupons.push({...coupons.find(c => c.code == '10PCT')});
+            } else if (total >= 150) {
+                earnedCoupons.push({...coupons.find(c => c.code == '25PCT')});
+                earnedCoupons.push({...coupons.find(c => c.code == '10PCT')});
+            }
+            updateEarnedCouponsDisplay();
+        }
+
+        function updateEarnedCouponsDisplay() {
+            earnedCouponsDisplay.innerHTML = '';
+            earnedCoupons.forEach(coupon => {
+                const li = document.createElement('li');
+                li.textContent = `${coupon.value * 100}% off coupon (${coupon.code})`;
+                earnedCouponsDisplay.appendChild(li);
+            });
+        }
+
+        function displayCoupons() {
+            couponDisplay.innerHTML = '';
+            let combinedCoupons = mergeCoupons(coupons, earnedCoupons);
+
+            combinedCoupons.forEach((coupon, index) => {
+                const container = document.createElement('div');
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `coupon_${index}`;
+                checkbox.dataset.index = index;
+                container.appendChild(checkbox);
+
+                const label = document.createElement('label');
+                label.htmlFor = `coupon_${index}`;
+                label.textContent = coupon.value >= 1 ? `$${coupon.value.toFixed(2)} off` : `${coupon.value * 100}% off`;
+                container.appendChild(label);
+
+                const quantityInput = document.createElement('input');
+                quantityInput.type = 'number';
+                quantityInput.id = `quantity_${index}`;
+                quantityInput.value = coupon.quantity;
+                quantityInput.min = 0;
+                quantityInput.dataset.index = index;
+                quantityInput.addEventListener('change', updateCouponQuantity);
+                container.appendChild(quantityInput);
+
+                couponDisplay.appendChild(container);
+            });
+        }
+
+        function mergeCoupons(coupons, earnedCoupons) {
+            let result = [...coupons];
+
+            earnedCoupons.forEach(earnedCoupon => {
+                const existingCouponIndex = result.findIndex(c => c.value === earnedCoupon.value);
+                if (existingCouponIndex !== -1) {
+                    result[existingCouponIndex].quantity += 1;
+                } else {
+                    result.push({...earnedCoupon, quantity: 1});
+                }
+            });
+
+            return result;
+        }
+
+        function updateCouponQuantity(event) {
+            const index = event.target.dataset.index;
+            let combinedCoupons = mergeCoupons(coupons, earnedCoupons)
+            combinedCoupons[index].quantity = parseInt(event.target.value, 10);
+
+            let realCoupon = coupons.findIndex(c => c.value == combinedCoupons[index].value)
+            if (realCoupon !== -1) {
+                coupons[realCoupon].quantity = combinedCoupons[index].quantity;
+            } else {
+                let earnedIndex = earnedCoupons.findIndex(c => c.value == combinedCoupons[index].value)
+                if (earnedIndex !== -1)
+                    earnedCoupons[earnedIndex].quantity = combinedCoupons[index].quantity
+            }
+
+            displayCoupons()
+        }
+
+        function calculateDiscountedPrice(price, coupon) {
+                if (coupon.value >= 1) {
+                    return Math.max(0, price - coupon.value);
+                } else {
+                    return price * (1 - coupon.value);
+                }
+        }
+
+        function optimizeDiscounts() {
+            const cartValue = parseFloat(document.getElementById('cartValue').value);
+            let combinedCoupons = mergeCoupons(coupons, earnedCoupons);
+            let bestPrice = cartValue;
+            let bestCombination = [];
+        
+            function findBestCombination(remainingPrice, currentCoupons, currentIndex) {
+                if (remainingPrice < bestPrice) {
+                    bestPrice = remainingPrice;
+                    bestCombination = currentCoupons;
+                }
+        
+                if (currentIndex >= combinedCoupons.length || remainingPrice <= 0) {
+                    return;
+                }
+        
+                const currentCoupon = combinedCoupons[currentIndex];
+        
+                // Skip this coupon
+                findBestCombination(remainingPrice, currentCoupons, currentIndex + 1);
+        
+                // Use the current coupon in quantity increments
+                for (let i = 1; i <= currentCoupon.quantity; i++) {
+                    let nextPrice = remainingPrice;
+                    let appliedCoupons = [];
+        
+                    for(let j = 0; j < i; j++) {
+                        nextPrice = calculateDiscountedPrice(nextPrice, currentCoupon);
+                        appliedCoupons.push(currentCoupon);
+                    }
+        
+                    findBestCombination(nextPrice, currentCoupons.concat(appliedCoupons), currentIndex + 1);
+                }
+            }
+        
+            findBestCombination(cartValue, [], 0);
+                    displayResults(bestPrice, bestCombination);
+        }
+
+        function displayResults(bestPrice, bestCombination) {
+            if (bestCombination.length === 0) {
+                bestCombinationDisplay.textContent = 'No coupons applied.';
+            } else {
+                const appliedCoupons = bestCombination.map(coupon => {
+                     if (coupon.value >= 1) {
+                         return `$${coupon.value.toFixed(2)} off`
+                     } else {
+                         return `${coupon.value * 100}% off`
+                     }
+                });
+                bestCombinationDisplay.textContent = 'Applied Coupons: ' + appliedCoupons.join(', ');
+            }
+            finalPriceDisplay.textContent = bestPrice.toFixed(2);
+        }
+
+        displayCoupons();
+    </script>
+</body>
+</html>

@@ -23,19 +23,11 @@
         .discount-checkbox {
             margin-bottom: 20px;
         }
-        .coupon-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .coupon-row input[type="number"] {
-            width: 50px;
-        }
     </style>
 </head>
 <body>
     <h1>LiquidSonics Coupon Optimizer</h1>
-    <h5>Now assumes coupons can be used multiple times (thanks, bossanova@RGO)</h5>
+	<h5>Now assumes coupons can be used multiple times (thanks, bossanova@RGO)</h5>
     <p>Select the coupons you already have:</p>
     <div class="checkbox-container" id="couponCheckboxes">
     </div>
@@ -56,7 +48,7 @@
             'Lustrous Plates': 99.00,
             'HD Cart': 99.00,
             'Seventh Heaven': 49.00,
-            'Seventh Heaven Professional': 179.00,
+            'Seventh Heaven Professional': 179.00, 
             'Illusion': 99.00,
             'Cinematic Rooms Professional': 249.00,
             'Cinematic Rooms': 129.00,
@@ -165,12 +157,11 @@
                     'Coupons Available Before': Array.from(couponsAvailable)
                 };
 
-                // Instead of using a Set, we keep them as arrays to allow duplicates
-                const newCouponsAvailable = couponsAvailable.slice();
+                const newCouponsAvailable = new Set(couponsAvailable);
                 for (const product of productsInPurchase) {
                     if (couponsGiven[product]) {
                         for (const coupon of couponsGiven[product]) {
-                            newCouponsAvailable.push(coupon);
+                            newCouponsAvailable.add(coupon);
                         }
                     }
                 }
@@ -227,32 +218,18 @@
                 return;
             }
 
-            // Get selected coupons and their quantities
-            const selectedCoupons = [];
-            const couponRows = document.querySelectorAll('.coupon-row');
-            couponRows.forEach(row => {
-                const checkbox = row.querySelector('input[name="coupon"]');
-                const numberInput = row.querySelector('input[type="number"]');
-                if (checkbox && checkbox.checked) {
-                    let count = parseInt(numberInput.value, 10);
-                    if (isNaN(count) || count < 1) {
-                        count = 1; // default to 1 if invalid
-                    }
-                    for (let i = 0; i < count; i++) {
-                        selectedCoupons.push(parseFloat(checkbox.value));
-                    }
-                }
-            });
-
-            const educationalDiscount = document.getElementById('educationalDiscountCheckbox').checked ? 30 : 0;
-
-            const initialCouponsAvailable = selectedCoupons.slice(); // array for duplicates
+            // Get selected coupons
+            const selectedCoupons = Array.from(document.querySelectorAll('input[name="coupon"]:checked'))
+                                         .map(checkbox => parseFloat(checkbox.value));
+            const initialCouponsAvailable = new Set(selectedCoupons);
 
             let minTotalCostOverall = Infinity;
             let bestStrategyOverall = null;
             let bestStepsOverall = null;
 
             const partitions = Array.from(getPartitions(checkedProducts));
+
+            const educationalDiscount = document.getElementById('educationalDiscountCheckbox').checked ? 30 : 0;
 
             for (const partition of partitions) {
                 for (const purchaseOrder of getPermutations(partition)) {
@@ -304,11 +281,11 @@
                 checkbox.name = 'product';
                 checkbox.value = product;
                 checkbox.id = `product-${product.replace(/ /g, '-')}`; // To make valid IDs
-
+                
                 const label = document.createElement('label');
                 label.htmlFor = `product-${product.replace(/ /g, '-')}`;
                 label.textContent = product;
-
+                
                 checkboxDiv.appendChild(checkbox);
                 checkboxDiv.appendChild(label);
                 checkboxContainer.appendChild(checkboxDiv);
@@ -327,30 +304,20 @@
             const sortedCoupons = Array.from(allUniqueCoupons).sort((a, b) => b - a); // Sort in descending order
 
             for (const coupon of sortedCoupons) {
-                const rowDiv = document.createElement('div');
-                rowDiv.classList.add('coupon-row');
-
+                const checkboxDiv = document.createElement('div');
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.name = 'coupon';
                 checkbox.value = coupon;
-                checkbox.id = `coupon-${coupon.toString().replace('.', '-')}`;
-
+                checkbox.id = `coupon-${coupon.toString().replace('.', '-')}`; // To make valid IDs
+                
                 const label = document.createElement('label');
                 label.htmlFor = `coupon-${coupon.toString().replace('.', '-')}`;
                 label.textContent = `${coupon}% Coupon`;
-
-                const numberInput = document.createElement('input');
-                numberInput.type = 'number';
-                numberInput.min = '1';
-                numberInput.value = '1';
-
-                // Append to the row
-                rowDiv.appendChild(checkbox);
-                rowDiv.appendChild(label);
-                rowDiv.appendChild(numberInput);
-
-                couponContainer.appendChild(rowDiv);
+                
+                checkboxDiv.appendChild(checkbox);
+                checkboxDiv.appendChild(label);
+                couponContainer.appendChild(checkboxDiv);
             }
         }
 
