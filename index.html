@@ -1,17 +1,380 @@
-<!doctypehtml><html lang=en><meta charset=UTF-8><title>LiquidSonics Coupon Optimizer</title><style>body{font-family:sans-serif;padding:20px}#results{width:100%;height:300px;margin-top:10px;font-family:monospace}.checkbox-container{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:20px}.discount-checkbox{margin-bottom:20px}.coupon-row{display:flex;align-items:center;gap:10px}.coupon-row input[type=number]{width:50px}</style><h1>LiquidSonics Coupon Optimizer</h1><h5>Now assumes coupons can be used multiple times (thanks, bossanova@RGO)</h5><p>Select the coupons you already have:<div class=checkbox-container id=couponCheckboxes></div><p>Select the products you want to purchase:<div class=checkbox-container id=productCheckboxes></div><div class=discount-checkbox><input id=educationalDiscountCheckbox type=checkbox> <label for=educationalDiscountCheckbox>Educational Discount (30%)</label></div><button id=computeButton>Optimize Purchases</button> <textarea id=results readonly></textarea><script>let products={"Tai Chi Lite":29,"Lustrous Plates":99,"HD Cart":99,"Seventh Heaven":49,"Seventh Heaven Professional":179,Illusion:99,"Cinematic Rooms Professional":249,"Cinematic Rooms":129,"Lustrous Plates Surround":149,"Tai Chi":99,"M7 Link":99,"Reverberate 3":49},couponsGiven={"Cinematic Rooms Professional":[30],"Seventh Heaven Professional":[25],Illusion:[22.5],"Lustrous Plates Surround":[22.5],"Cinematic Rooms":[20],"Lustrous Plates":[20],"Tai Chi":[20],"HD Cart":[20],"M7 Link":[20],"Reverberate 3":[10],"Tai Chi Lite":[10],"Seventh Heaven":[5]};function*getPartitions(e){if(1===e.length)yield[e];else{var o,t=e[0];for(o of getPartitions(e.slice(1))){for(let e=0;e<o.length;e++){var n=o[e];yield[...o.slice(0,e),[t,...n],...o.slice(e+1)]}yield[[t],...o]}}}function tuplefy(e){return Array.from(e).sort((e,o)=>e-o).toString()}function simulate(n,r,i,a,l={}){var u=`${r}-${tuplefy(i)}-`+a;if(!(u in l)){if(r===n.length)return[0,[]];let e=1/0,o=[];var s,c=n[r],p={};let t=0;for(s of c)p[s]=products[s],t+=products[s];t;var d,f=Array.from(i),m=[[]];for(let e=1;e<=f.length;e++)for(var h of getCombinations(f,e))m.push(h);for(d of m){var v,C=[],g=[];0<a&&(C.push(1-a/100),g.push(a));for(v of d)C.push(1-v/100),g.push(v);var P,y=C.reduce((e,o)=>e*o,1),y=t*y,b={"Purchase Number":r+1,Products:c,"Original Prices":p,"Total Original Price":t,"Price after Educational Discount":0<a?t*(1-a/100):null,"Coupons Applied":g,"Price after Coupons":y,"Coupons Used":d.slice(),"Coupons Available Before":Array.from(i)},E=i.slice();for(P of c)if(couponsGiven[P])for(var $ of couponsGiven[P])E.push($);var[x,A]=simulate(n,r+1,E,a,l),y=y+x;y<e&&(e=y,o=[b,...A])}l[u]=[e,o]}return l[u]}function*getCombinations(o,t){if(0===t)yield[];else for(let e=0;e<=o.length-t;e++){var n,r=o[e];for(n of getCombinations(o.slice(e+1),t-1))yield[r,...n]}}function*getPermutations(o){if(1===o.length)yield o.slice();else for(let e=0;e<o.length;e++){var t,n=o[e];for(t of getPermutations(o.slice(0,e).concat(o.slice(e+1))))yield[n,...t]}}function optimize(){var r=Array.from(document.querySelectorAll('input[name="product"]:checked')).map(e=>e.value);if(0===r.length)alert("Please select at least one product.");else{let n=[];document.querySelectorAll(".coupon-row").forEach(e=>{var t=e.querySelector('input[name="coupon"]'),e=e.querySelector('input[type="number"]');if(t&&t.checked){let o=parseInt(e.value,10);(isNaN(o)||o<1)&&(o=1);for(let e=0;e<o;e++)n.push(parseFloat(t.value))}});var i,a=document.getElementById("educationalDiscountCheckbox").checked?30:0,l=n.slice();let e=1/0,o=null,t=null;for(i of Array.from(getPartitions(r)))for(var u of getPermutations(i)){var[s,c]=simulate(u,0,l,a,{});s<e&&(e=s,o=[i,u],t=c.slice())}displayResults(o,t,e)}}function displayResults(e,o,t){var n,r=document.getElementById("results");let i=`Best Strategy:
-`;i+=`Purchase Order:
-`,e[1].forEach((e,o)=>{i+=`  Purchase ${o+1}: ${e}
-`}),i+=`
-Detailed Steps:
-`;for(n of o)i=(i=(i+=`
-Purchase ${n["Purchase Number"]}: Buying ${n.Products.join(", ")}
-`)+`  Original Prices: ${Object.entries(n["Original Prices"]).map(([e,o])=>e+": $"+o.toFixed(2)).join(", ")}
-`)+`  Total Original Price: $${n["Total Original Price"].toFixed(2)}
-`,null!==n["Price after Educational Discount"]&&(i+=`  Price after Educational Discount: $${n["Price after Educational Discount"].toFixed(2)}
-`),i=(i=(i=(i+=`  Coupons Applied: ${0<n["Coupons Applied"].length?n["Coupons Applied"].map(e=>e+"%").join(", "):"None"}
-`)+`  Price after Coupons: $${n["Price after Coupons"].toFixed(2)}
-`)+`  Coupons Used: ${0<n["Coupons Used"].length?n["Coupons Used"].map(e=>e+"%").join(", "):"None"}
-`)+`  Coupons Available Before Purchase: ${0<n["Coupons Available Before"].length?n["Coupons Available Before"].map(e=>e+"%").join(", "):"None"}
-`;i+=`
-Lowest Total Cost: $${t.toFixed(2)}
-`,r.value=i}function populateCheckboxes(){var e,o=document.getElementById("productCheckboxes");for(e in products){var t=document.createElement("div"),n=document.createElement("input"),r=(n.type="checkbox",n.name="product",n.value=e,n.id="product-"+e.replace(/ /g,"-"),document.createElement("label"));r.htmlFor="product-"+e.replace(/ /g,"-"),r.textContent=e,t.appendChild(n),t.appendChild(r),o.appendChild(t)}}function populateCouponCheckboxes(){var e,o,t=document.getElementById("couponCheckboxes"),n=new Set;for(e of Object.values(couponsGiven))for(var r of e)n.add(r);for(o of Array.from(n).sort((e,o)=>o-e)){var i=document.createElement("div"),a=(i.classList.add("coupon-row"),document.createElement("input")),l=(a.type="checkbox",a.name="coupon",a.value=o,a.id="coupon-"+o.toString().replace(".","-"),document.createElement("label")),u=(l.htmlFor="coupon-"+o.toString().replace(".","-"),l.textContent=o+"% Coupon",document.createElement("input"));u.type="number",u.min="1",u.value="1",i.appendChild(a),i.appendChild(l),i.appendChild(u),t.appendChild(i)}}window.onload=()=>{populateCouponCheckboxes(),populateCheckboxes(),document.getElementById("computeButton").addEventListener("click",optimize)}</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiquidSonics Coupon Optimizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <div class="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">LiquidSonics Coupon Optimizer</h1>
+        <h5 class="text-sm text-gray-600 mb-8">Now assumes coupons can be used multiple times (thanks, bossanova@RGO)</h5>
+        
+        <div class="space-y-8">
+            <section class="bg-white rounded-2xl shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Select the coupons you already have:</h2>
+                <div class="checkbox-container" id="couponCheckboxes"></div>
+            </section>
+
+            <section class="bg-white rounded-2xl shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Select the products you want to purchase:</h2>
+                <div class="checkbox-container" id="productCheckboxes"></div>
+            </section>
+
+            <div class="bg-white rounded-2xl shadow-sm p-6">
+                <div class="discount-checkbox flex items-center space-x-2">
+                    <input type="checkbox" id="educationalDiscountCheckbox" 
+                           class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <label for="educationalDiscountCheckbox" class="text-gray-700">
+                        Educational Discount (30%)
+                    </label>
+                </div>
+            </div>
+
+            <button id="computeButton" 
+                    class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 
+                           transition duration-150 ease-in-out focus:outline-none focus:ring-2 
+                           focus:ring-blue-500 focus:ring-offset-2">
+                Optimize Purchases
+            </button>
+
+            <textarea id="results" readonly 
+                      class="w-full h-96 p-4 mt-4 font-mono text-sm bg-gray-50 border border-gray-200 
+                             rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+        </div>
+    </div>
+
+    <script>
+        // Products and coupon data
+        const products = {
+            'Tai Chi Lite': 99.00,
+            'Lustrous Plates': 199.00,
+            'HD Cart': 199.00,
+            'Seventh Heaven': 69.00,
+            'Seventh Heaven Professional': 299.00,
+            'Illusion': 249.00,
+            'Cinematic Rooms Professional': 399.00,
+            'Cinematic Rooms': 199.00,
+            'Lustrous Plates Surround': 249.00,
+            'Tai Chi': 199.00,
+            'M7 Link': 199.00,
+            'Reverberate 3': 99.00
+        };
+
+        const couponsGiven = {
+            'Cinematic Rooms Professional': [30],
+            'Seventh Heaven Professional': [25],
+            'Illusion': [22.5],
+            'Lustrous Plates Surround': [22.5],
+            'Cinematic Rooms': [20],
+            'Lustrous Plates': [20],
+            'Tai Chi': [20],
+            'HD Cart': [20],
+            'M7 Link': [20],
+            'Reverberate 3': [10],
+            'Tai Chi Lite': [10],
+            'Seventh Heaven': [5]
+        };
+
+        // Function to generate all partitions of a collection
+        function* getPartitions(collection) {
+            if (collection.length === 1) {
+                yield [collection];
+                return;
+            }
+            const first = collection[0];
+            for (const smaller of getPartitions(collection.slice(1))) {
+                for (let n = 0; n < smaller.length; n++) {
+                    const subset = smaller[n];
+                    yield [...smaller.slice(0, n), [first, ...subset], ...smaller.slice(n + 1)];
+                }
+                yield [[first], ...smaller];
+            }
+        }
+
+        // Function to create a string key for memoization
+        function tuplefy(coupons) {
+            return Array.from(coupons).sort((a, b) => a - b).toString();
+        }
+
+        // Recursive function to simulate purchases and find optimal cost
+        function simulate(purchases, index, couponsAvailable, educationalDiscount, memo = {}) {
+            const key = `${index}-${tuplefy(couponsAvailable)}-${educationalDiscount}`;
+            if (key in memo) {
+                return memo[key];
+            }
+            if (index === purchases.length) {
+                return [0.0, []];
+            }
+
+            let minTotalCost = Infinity;
+            let bestSteps = [];
+
+            const purchase = purchases[index];
+            const productsInPurchase = purchase;
+
+            const originalPrices = {};
+            let totalOriginalPrice = 0;
+            for (const product of productsInPurchase) {
+                originalPrices[product] = products[product];
+                totalOriginalPrice += products[product];
+            }
+
+            const priceAfterEduDiscount = totalOriginalPrice * (1 - educationalDiscount / 100);
+
+            const allCoupons = Array.from(couponsAvailable);
+            const couponOptions = [[]];
+
+            for (let r = 1; r <= allCoupons.length; r++) {
+                for (const combo of getCombinations(allCoupons, r)) {
+                    couponOptions.push(combo);
+                }
+            }
+
+            for (const couponsToApply of couponOptions) {
+                const discountFactors = [];
+                const couponPercentages = [];
+
+                if (educationalDiscount > 0) {
+                    discountFactors.push(1 - educationalDiscount / 100);
+                    couponPercentages.push(educationalDiscount);
+                }
+
+                for (const coupon of couponsToApply) {
+                    discountFactors.push(1 - coupon / 100);
+                    couponPercentages.push(coupon);
+                }
+                const totalDiscountFactor = discountFactors.reduce((acc, curr) => acc * curr, 1);
+
+                const discountedPrice = totalOriginalPrice * totalDiscountFactor;
+
+                const step = {
+                    'Purchase Number': index + 1,
+                    'Products': productsInPurchase,
+                    'Original Prices': originalPrices,
+                    'Total Original Price': totalOriginalPrice,
+                    'Price after Educational Discount': educationalDiscount > 0 ? totalOriginalPrice * (1 - educationalDiscount / 100) : null,
+                    'Coupons Applied': couponPercentages,
+                    'Price after Coupons': discountedPrice,
+                    'Coupons Used': couponsToApply.slice(),
+                    'Coupons Available Before': Array.from(couponsAvailable)
+                };
+
+                // Instead of using a Set, we keep them as arrays to allow duplicates
+                const newCouponsAvailable = couponsAvailable.slice();
+                for (const product of productsInPurchase) {
+                    if (couponsGiven[product]) {
+                        for (const coupon of couponsGiven[product]) {
+                            newCouponsAvailable.push(coupon);
+                        }
+                    }
+                }
+
+                const [nextCost, nextSteps] = simulate(purchases, index + 1, newCouponsAvailable, educationalDiscount, memo);
+                const totalCost = discountedPrice + nextCost;
+
+                if (totalCost < minTotalCost) {
+                    minTotalCost = totalCost;
+                    bestSteps = [step, ...nextSteps];
+                }
+            }
+
+            memo[key] = [minTotalCost, bestSteps];
+            return memo[key];
+        }
+
+        function* getCombinations(arr, k) {
+            if (k === 0) {
+                yield [];
+                return;
+            }
+            for (let i = 0; i <= arr.length - k; i++) {
+                const first = arr[i];
+                for (const subCombo of getCombinations(arr.slice(i + 1), k - 1)) {
+                    yield [first, ...subCombo];
+                }
+            }
+        }
+
+        // Function to get permutations of an array
+        function* getPermutations(arr) {
+            if (arr.length === 1) {
+                yield arr.slice();
+                return;
+            }
+
+            for (let i = 0; i < arr.length; i++) {
+                const first = arr[i];
+                const rest = arr.slice(0, i).concat(arr.slice(i + 1));
+                for (const perm of getPermutations(rest)) {
+                    yield [first, ...perm];
+                }
+            }
+        }
+
+        // Main function to run the optimization
+        function optimize() {
+            const checkedProducts = Array.from(document.querySelectorAll('input[name="product"]:checked'))
+                                         .map(checkbox => checkbox.value);
+
+            if (checkedProducts.length === 0) {
+                alert("Please select at least one product.");
+                return;
+            }
+
+            // Get selected coupons and their quantities
+            const selectedCoupons = [];
+            const couponRows = document.querySelectorAll('.coupon-row');
+            couponRows.forEach(row => {
+                const checkbox = row.querySelector('input[name="coupon"]');
+                const numberInput = row.querySelector('input[type="number"]');
+                if (checkbox && checkbox.checked) {
+                    let count = parseInt(numberInput.value, 10);
+                    if (isNaN(count) || count < 1) {
+                        count = 1; // default to 1 if invalid
+                    }
+                    for (let i = 0; i < count; i++) {
+                        selectedCoupons.push(parseFloat(checkbox.value));
+                    }
+                }
+            });
+
+            const educationalDiscount = document.getElementById('educationalDiscountCheckbox').checked ? 30 : 0;
+
+            const initialCouponsAvailable = selectedCoupons.slice(); // array for duplicates
+
+            let minTotalCostOverall = Infinity;
+            let bestStrategyOverall = null;
+            let bestStepsOverall = null;
+
+            const partitions = Array.from(getPartitions(checkedProducts));
+
+            for (const partition of partitions) {
+                for (const purchaseOrder of getPermutations(partition)) {
+                    const memo = {}; // Clear memo for each strategy
+                    const [totalCost, steps] = simulate(purchaseOrder, 0, initialCouponsAvailable, educationalDiscount, memo);
+                    if (totalCost < minTotalCostOverall) {
+                        minTotalCostOverall = totalCost;
+                        bestStrategyOverall = [partition, purchaseOrder];
+                        bestStepsOverall = steps.slice();
+                    }
+                }
+            }
+
+            displayResults(bestStrategyOverall, bestStepsOverall, minTotalCostOverall);
+        }
+
+        // Function to display results in the textarea
+        function displayResults(bestStrategy, bestSteps, minTotalCost) {
+            const resultsTextArea = document.getElementById('results');
+            let output = `Best Strategy:\n`;
+            output += `Purchase Order:\n`;
+            bestStrategy[1].forEach((purchase, idx) => {
+                output += `  Purchase ${idx + 1}: ${purchase}\n`;
+            });
+            output += `\nDetailed Steps:\n`;
+            for (const step of bestSteps) {
+                output += `\nPurchase ${step['Purchase Number']}: Buying ${step['Products'].join(', ')}\n`;
+                output += `  Original Prices: ${Object.entries(step['Original Prices']).map(([k, v]) => `${k}: $${v.toFixed(2)}`).join(', ')}\n`;
+                output += `  Total Original Price: $${step['Total Original Price'].toFixed(2)}\n`;
+                if (step['Price after Educational Discount'] !== null) {
+                    output += `  Price after Educational Discount: $${step['Price after Educational Discount'].toFixed(2)}\n`;
+                }
+                output += `  Coupons Applied: ${step['Coupons Applied'].length > 0 ? step['Coupons Applied'].map(cp => cp + '%').join(', ') : 'None'}\n`;
+                output += `  Price after Coupons: $${step['Price after Coupons'].toFixed(2)}\n`;
+                output += `  Coupons Used: ${step['Coupons Used'].length > 0 ? step['Coupons Used'].map(cp => cp + '%').join(', ') : 'None'}\n`;
+                output += `  Coupons Available Before Purchase: ${step['Coupons Available Before'].length > 0 ? step['Coupons Available Before'].map(cp => cp + '%').join(', ') : 'None'}\n`;
+            }
+            output += `\nLowest Total Cost: $${minTotalCost.toFixed(2)}\n`;
+            resultsTextArea.value = output;
+        }
+
+        // Function to create checkboxes for each product
+        function populateCheckboxes() {
+            const checkboxContainer = document.getElementById('productCheckboxes');
+            for (const product in products) {
+                const checkboxDiv = document.createElement('div');
+                checkboxDiv.className = 'flex items-center space-x-2 p-2 hover:bg-gray-50 rounded';
+            
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'product';
+                checkbox.value = product;
+                checkbox.id = `product-${product.replace(/ /g, '-')}`;
+                checkbox.className = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500';
+
+                const label = document.createElement('label');
+                label.htmlFor = `product-${product.replace(/ /g, '-')}`;
+                label.textContent = product;
+                label.className = 'text-gray-700';
+
+                checkboxDiv.appendChild(checkbox);
+                checkboxDiv.appendChild(label);
+                checkboxContainer.appendChild(checkboxDiv);
+            }
+        }
+
+        // Function to create checkboxes for existing coupons
+        function populateCouponCheckboxes() {
+            const couponContainer = document.getElementById('couponCheckboxes');
+            const allUniqueCoupons = new Set();
+            for (const coupons of Object.values(couponsGiven)) {
+                for (const coupon of coupons) {
+                    allUniqueCoupons.add(coupon);
+                }
+            }
+            const sortedCoupons = Array.from(allUniqueCoupons).sort((a, b) => b - a); // Sort in descending order
+
+            for (const coupon of sortedCoupons) {
+                const rowDiv = document.createElement('div');
+                rowDiv.classList.add('coupon-row', 'flex', 'items-center', 'space-x-4', 'p-2', 'hover:bg-gray-50', 'rounded');
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'coupon';
+                checkbox.value = coupon;
+                checkbox.id = `coupon-${coupon.toString().replace('.', '-')}`;
+                checkbox.className = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500';
+
+                const label = document.createElement('label');
+                label.htmlFor = `coupon-${coupon.toString().replace('.', '-')}`;
+                label.textContent = `${coupon}% Coupon`;
+                label.className = 'text-gray-700 min-w-[100px]';
+
+                const numberInput = document.createElement('input');
+                numberInput.type = 'number';
+                numberInput.min = '1';
+                numberInput.value = '1';
+                numberInput.className = 'w-16 px-2 py-1 rounded border-gray-300 focus:ring-blue-500 focus:border-blue-500';
+
+                rowDiv.appendChild(checkbox);
+                rowDiv.appendChild(label);
+                rowDiv.appendChild(numberInput);
+
+                couponContainer.appendChild(rowDiv);
+            }
+        }
+
+        // Initialize checkboxes and attach event listener to button
+        window.onload = () => {
+            populateCouponCheckboxes();
+            populateCheckboxes();
+            document.getElementById('computeButton').addEventListener('click', optimize);
+        };
+    </script>
+</body>
+</html>
+
