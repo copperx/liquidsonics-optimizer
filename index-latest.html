@@ -2,52 +2,60 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LiquidSonics Coupon Optimizer</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            padding: 20px;
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                }
+            }
         }
-        #results {
-            width: 100%;
-            height: 300px;
-            margin-top: 10px;
-            font-family: monospace;
-        }
-        .checkbox-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .discount-checkbox {
-            margin-bottom: 20px;
-        }
-        .coupon-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .coupon-row input[type="number"] {
-            width: 50px;
-        }
-    </style>
+    </script>
 </head>
-<body>
-    <h1>LiquidSonics Coupon Optimizer</h1>
-    <h5>Now assumes coupons can be used multiple times (thanks, bossanova@RGO)</h5>
-    <p>Select the coupons you already have:</p>
-    <div class="checkbox-container" id="couponCheckboxes">
+<body class="min-h-screen bg-gray-50">
+    <div class="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">LiquidSonics Coupon Optimizer</h1>
+        <h5 class="text-sm text-gray-600 mb-8">Now assumes coupons can be used multiple times (thanks, bossanova@RGO)</h5>
+        
+        <div class="space-y-8">
+            <section class="bg-white rounded-2xl shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Select the coupons you already have:</h2>
+                <div class="checkbox-container" id="couponCheckboxes"></div>
+            </section>
+
+            <section class="bg-white rounded-2xl shadow-sm p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Select the products you want to purchase:</h2>
+                <div class="checkbox-container" id="productCheckboxes"></div>
+            </section>
+
+            <div class="bg-white rounded-2xl shadow-sm p-6">
+                <div class="discount-checkbox flex items-center space-x-2">
+                    <input type="checkbox" id="educationalDiscountCheckbox" 
+                           class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <label for="educationalDiscountCheckbox" class="text-gray-700">
+                        Educational Discount (30%)
+                    </label>
+                </div>
+            </div>
+
+            <button id="computeButton" 
+                    class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 
+                           transition duration-150 ease-in-out focus:outline-none focus:ring-2 
+                           focus:ring-blue-500 focus:ring-offset-2">
+                Optimize Purchases
+            </button>
+
+            <textarea id="results" readonly 
+                      class="w-full h-96 p-4 mt-4 font-mono text-sm bg-gray-50 border border-gray-200 
+                             rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+        </div>
     </div>
-    <p>Select the products you want to purchase:</p>
-    <div class="checkbox-container" id="productCheckboxes">
-    </div>
-    <div class="discount-checkbox">
-        <input type="checkbox" id="educationalDiscountCheckbox">
-        <label for="educationalDiscountCheckbox">Educational Discount (30%)</label>
-    </div>
-    <button id="computeButton">Optimize Purchases</button>
-    <textarea id="results" readonly></textarea>
 
     <script>
         // Products and coupon data
@@ -299,15 +307,19 @@
             const checkboxContainer = document.getElementById('productCheckboxes');
             for (const product in products) {
                 const checkboxDiv = document.createElement('div');
+                checkboxDiv.className = 'flex items-center space-x-2 p-2 hover:bg-gray-50 rounded';
+            
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.name = 'product';
                 checkbox.value = product;
-                checkbox.id = `product-${product.replace(/ /g, '-')}`; // To make valid IDs
+                checkbox.id = `product-${product.replace(/ /g, '-')}`;
+                checkbox.className = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500';
 
                 const label = document.createElement('label');
                 label.htmlFor = `product-${product.replace(/ /g, '-')}`;
                 label.textContent = product;
+                label.className = 'text-gray-700';
 
                 checkboxDiv.appendChild(checkbox);
                 checkboxDiv.appendChild(label);
@@ -328,24 +340,26 @@
 
             for (const coupon of sortedCoupons) {
                 const rowDiv = document.createElement('div');
-                rowDiv.classList.add('coupon-row');
+                rowDiv.classList.add('coupon-row', 'flex', 'items-center', 'space-x-4', 'p-2', 'hover:bg-gray-50', 'rounded');
 
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.name = 'coupon';
                 checkbox.value = coupon;
                 checkbox.id = `coupon-${coupon.toString().replace('.', '-')}`;
+                checkbox.className = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500';
 
                 const label = document.createElement('label');
                 label.htmlFor = `coupon-${coupon.toString().replace('.', '-')}`;
                 label.textContent = `${coupon}% Coupon`;
+                label.className = 'text-gray-700 min-w-[100px]';
 
                 const numberInput = document.createElement('input');
                 numberInput.type = 'number';
                 numberInput.min = '1';
                 numberInput.value = '1';
+                numberInput.className = 'w-16 px-2 py-1 rounded border-gray-300 focus:ring-blue-500 focus:border-blue-500';
 
-                // Append to the row
                 rowDiv.appendChild(checkbox);
                 rowDiv.appendChild(label);
                 rowDiv.appendChild(numberInput);
